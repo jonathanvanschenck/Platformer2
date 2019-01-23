@@ -78,6 +78,12 @@ def main():
         for sprite in physicsSprites.sprites():
             sprite.moveFromV()
             engine.collisionPlatform(sprite,platformSprites)
+        # Scroll Screen
+        charx = player.rect.centerx
+        if charx < 0.2*varbs.screenW or charx > 0.8*varbs.screenW:
+            dx = screen.get_rect().centerx - charx
+            for sprite in scrollingSprites.sprites():
+                sprite.rect.move_ip(dx,0)
         # Update all sprites
         scrollingSprites.update()
         # Draw all sprites (via groups)
