@@ -33,13 +33,11 @@ def collisionPlatform(sprite,platformSprites):
     for platform in pg.sprite.spritecollide(sprite, platformSprites, 0):
         dx = collisionEdgeCorrection(sprite.rectO,sprite.rect,platform.rect)
         if platform.openBottom and dx[1] < 0.0:
-            #sprite.rect = sprite.rect.move(dx[0],dx[1])
-            sprite.rect.move_ip(dx[0],dx[1])
+            sprite.move(dx[0],dx[1])
             contact = True
             sprite.v[1] = 0.0
         elif not platform.openBottom:
-            #sprite.rect = sprite.rect.move(dx[0],dx[1])
-            sprite.rect.move_ip(dx[0],dx[1])
+            sprite.move(dx[0],dx[1])
             if dx[0] != 0.0:
                 sprite.v[0] = 0.0
             if dx[1] != 0.0:
@@ -53,7 +51,7 @@ def collisionMob(sprite,mobSprites):
     for mSprite in pg.sprite.spritecollide(sprite, mobSprites, 0):
         dx = collisionEdgeCorrection(sprite.rectO,sprite.rect,mSprite.rect)
         if dx[1] < 0.0:
-            sprite.rect.move_ip(dx[0],dx[1])
+            sprite.move(dx[0],dx[1])
             sprite.contact = True
             sprite.v[1] = -varbs.playerJumpOn
             mSprite.kill()

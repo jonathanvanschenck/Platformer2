@@ -31,7 +31,7 @@ class Player(pg.sprite.Sprite):
     Functions: update,
     Attributes: area, v
     """
-    def __init__(self):
+    def __init__(self,sword=None):
         pg.sprite.Sprite.__init__(self)
         self.image, self.rect = load_png('walk02.png')
         self.loadGraphics()
@@ -47,6 +47,8 @@ class Player(pg.sprite.Sprite):
         self.doubleJump = True
         self.jumpActive = True
         self.attacking = False
+        self.sword = sword
+        self.attackFrame = 0
     
     def loadGraphics(self):
         self.walkImages = [[load_png('walk0'+str(j+1)+'.png')[0] for j in range(4)]]
@@ -59,24 +61,52 @@ class Player(pg.sprite.Sprite):
     def update(self):
         """Sets current position for next loop iteration
         """
-        # Check which direction the character moved, update facing dir.
-        if self.rectO.left < self.rect.left:
-            self.facingI = 0#Right
-        elif self.rectO.left > self.rect.left:
-            self.facingI = 1#Left
         # Update position
         self.rectO = self.rect.copy()
+        # Update sword visibility
+        try:
+            self.sword.visible = False
+        except AttributeError:
+            pass
         # Default sprite state
         self.image = self.walkImages[self.facingI][1]
         if self.contact:
             # Cycle through walk animation
             if sum(self.accel) != 0.0:
                 self.walkingI += 1
-                self.image = self.walkImages[self.facingI][self.walkingI%4]
+                self.image = self.walkImages[self.facingI][(self.walkingI%(4*varbs.stepFrameLength))//varbs.stepFrameLength]
         # Switch to falling sprite state
         elif self.v[1]>=0.0:
             self.image = self.walkImages[self.facingI][0]
+        # Force to lunge motion if attacking
+        if self.attacking:
+            self.image = self.walkImages[self.facingI][0]
+            self.attackFrame += 1
+            try:
+                self.sword.visible = True
+            except AttributeError:
+                pass
+            if self.attackFrame%varbs.attackFrameLength == 0:
+                self.attackFrame = 1
+                self.setAttack(False)
             
+    def move(self,dx=0,dy=0):
+        self.rect.move_ip(dx,dy)
+        # Check which direction the character moved, update facing dir.
+        if self.rectO.left < self.rect.left:
+            self.facingI = 0#Right
+        elif self.rectO.left > self.rect.left:
+            self.facingI = 1#Left
+        try:
+            self.sword.image = self.sword.images[self.facingI]
+            if self.facingI == 0:
+                self.sword.rect.top = self.rect.top + self.sword.yoffset
+                self.sword.rect.left = self.rect.left + self.sword.xoffset
+            else:
+                self.sword.rect.top = self.rect.top + self.sword.yoffset
+                self.sword.rect.right = self.rect.right - self.sword.xoffset
+        except AttributeError:
+            pass
         
     def moveFromV(self):
         """Steps position foward according to velocity and max velocity
@@ -84,7 +114,7 @@ class Player(pg.sprite.Sprite):
         self.v = np.array([sign(self.v[i])*min(abs(self.v[i]),varbs.playervmax[i]) for i in [0,1]])
         #print(self.v)
         #self.rect = self.rect.move(int(self.v[0]),int(self.v[1]))
-        self.rect.move_ip(int(self.v[0]),int(self.v[1]))
+        self.move(int(self.v[0]),int(self.v[1]))
         
     def setAccel(self,left=None,right=None):
         if left != None:
@@ -112,26 +142,79 @@ class Player(pg.sprite.Sprite):
     def doubleJumpReset(self,state):
         if state:
             self.doubleJump = True
+            
+    def setAttack(self,attackBool):
+        self.attacking = attackBool
 
-class PlayerItem(pg.sprite.Sprite):
+class RenderUpdatesSneaky(pg.sprite.RenderUpdates):
+    """Modification of .RenderUpdates which knows about sneaky sprites
+    """
+    def __init__(*args):
+        pg.sprite.RenderUpdates.__init__(*args)
+        
+
+    def draw(self, surface):
+        spritedict = self.spritedict
+        surface_blit = surface.blit
+        dirty = self.lostsprites
+        self.lostsprites = []
+        dirty_append = dirty.append
+        for s in self.sprites():
+            try:
+                visible = s.visible
+            except AttributeError:
+                visible = True
+            r = spritedict[s]
+            if visible:
+                newrect = surface_blit(s.image, s.rect)
+            if r:
+                if newrect.colliderect(r):
+                    dirty_append(newrect.union(r))
+                else:
+                    dirty_append(newrect)
+                    dirty_append(r)
+            else:
+                dirty_append(newrect)
+            spritedict[s] = newrect
+        return dirty
+        
+class sneakySprite(pg.sprite.Sprite):
+    """Sprite with 'visible' trait
+    """
+    def __init__(self,visible=1):
+        pg.sprite.Sprite.__init__(self)
+        self.__set_visible(visible)
+        
+    def __set_visible(self,visible):
+        self.__visible = bool(visible)
+        
+    def __get_visible(self):
+        return self.__visible
+        
+    visible = property(lambda self: self.__get_visible(),
+                       lambda self, vis: self.__set_visible(vis),
+                       doc="Sets if a sprite is visible (0/1)")
+        
+
+
+class PlayerItem(sneakySprite):
     """Player item sprite
     """
     
-    def __init__(self,playerSprite,imagename,xoffset=30,yoffset=43):
-        pg.sprite.Sprite.__init__(self)
-        self.playerSprite = playerSprite
+    def __init__(self,imagename,xoffset=30,yoffset=42,startVisible=False):
+        sneakySprite.__init__(self)
+        self.visible = startVisible
         self.image, self.rect = load_png(imagename)
+        self.images = [self.image,flipx(self.image)]
         self.xoffset = xoffset
         self.yoffset = yoffset
-        self.move()
         
     def update(self):
-        self.move()        
+        pass
         
-    def move(self):
-        self.rect.topleft = self.playerSprite.rect.topleft
-        self.rect.top += self.yoffset
-        self.rect.left += self.xoffset
+    #def move(self):
+    #    self.rect.top += self.yoffset
+    #    self.rect.left += self.xoffset
 
 class Mob(pg.sprite.Sprite):
     """Mob sprite
@@ -184,15 +267,17 @@ class Mob(pg.sprite.Sprite):
             
     def doubleJumpReset(self,arg):
         pass
+    
+    def move(self,dx=0,dy=0):
+        self.rect.move_ip(dx,dy)
             
-        
     def moveFromV(self):
         """Steps position foward according to velocity and max velocity
         """
         self.v = np.array([sign(self.v[i])*min(abs(self.v[i]),varbs.mobvmax[i]) for i in [0,1]])
         #print(self.v)
         #self.rect = self.rect.move(int(self.v[0]),int(self.v[1]))
-        self.rect.move_ip(int(self.v[0]),int(self.v[1]))
+        self.move(int(self.v[0]),int(self.v[1]))
 
             
             

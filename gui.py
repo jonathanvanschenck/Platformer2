@@ -25,8 +25,8 @@ def main():
     # Initialize player
     global player
     global sword
-    player = initialize.initPlayer()
-    sword = initialize.initSword(player)
+    sword = initialize.initSword()
+    player = initialize.initPlayer(sword)
     
     # Initialize mobs
     global mobs
@@ -46,7 +46,7 @@ def main():
     playerSprite = pg.sprite.Group(player)
     itemSprites = pg.sprite.Group(sword)
     platformSprites = pg.sprite.Group(platforms)
-    scrollingSprites = pg.sprite.RenderUpdates([lava]+[player,sword]+mobs+platforms+[goal])
+    scrollingSprites = classes.RenderUpdatesSneaky([lava]+[player,sword]+mobs+platforms+[goal])
     physicsSprites = pg.sprite.Group([player]+mobs)
     mobSprites = pg.sprite.Group(mobs)
     
@@ -70,6 +70,8 @@ def main():
                 if event.key == K_w:
                     player.jumpAttempt()
                     player.jumpActive = False
+                if event.key == K_SPACE:
+                    player.setAttack(True)
             if event.type == KEYUP:
                 if event.key == K_a:
                     player.setAccel(left=0.0)
@@ -77,6 +79,8 @@ def main():
                     player.setAccel(right=0.0)
                 if event.key == K_w:
                     player.jumpActive = True
+                #if event.key == K_SPACE:
+                #    player.setAttack(False)
 
         # Erase Player and platform location    
         scrollingSprites.clear(screen,background)
@@ -87,16 +91,24 @@ def main():
         for sprite in physicsSprites.sprites():
             sprite.moveFromV()
             engine.collisionPlatform(sprite,platformSprites)
-        # Check for collisions with mobs
-        dead = engine.collisionMob(player,mobSprites)
         # Kill mobs in the lava
         pg.sprite.spritecollide(lava, mobSprites,1)
+        # Kill mobs hit by sword
+        if sword.visible:
+            pg.sprite.spritecollide(sword, mobSprites,1)
+        # Check for collisions with mobs
+        dead = engine.collisionMob(player,mobSprites)
         # Scroll Screen
         charx = player.rect.centerx
-        if charx < 0.2*varbs.screenW or charx > 0.7*varbs.screenW:
+        if charx < 0.39*varbs.screenW or charx > 0.41*varbs.screenW:
             dx = 0.4*varbs.screenW - charx
             for sprite in scrollingSprites.sprites():
                 sprite.rect.move_ip(dx,0)
+        if len(mobSprites.sprites()) < 2:
+            newMob = classes.Mob(x = 1.3*varbs.screenW)
+            mobSprites.add(newMob)
+            physicsSprites.add(newMob)
+            scrollingSprites.add(newMob)
         # Update all sprites
         scrollingSprites.update()
         # Draw all sprites (via groups)

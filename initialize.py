@@ -5,15 +5,15 @@ import pygame as pg
 import varbs
 import classes
 
-def initPlayer():
+def initPlayer(sword = None):
     """Initalizes player
     """
-    return classes.Player()
+    return classes.Player(sword)
     
-def initSword(player):
+def initSword(startVisible = False):
     """Initalizes sword
     """
-    return classes.PlayerItem(player,"sword.png")
+    return classes.PlayerItem("sword.png",startVisible=startVisible)
     
 def initMobs():
     """Initalizes player
