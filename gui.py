@@ -7,6 +7,7 @@ from pygame.locals import *
 import varbs
 import classes
 import engine
+import initialize
 
 def main():
     # Initalize the Screen
@@ -20,26 +21,34 @@ def main():
     background.fill((250,250,250))
     
     # Populate background
-    font = pg.font.Font(None, 36)
-    text = font.render("Hello!", 1, (10,10,10))
-    textpos = text.get_rect()
-    textpos.centerx = background.get_rect().centerx
-    background.blit(text, textpos)
     
     # Initialize player
     global player
-    player = classes.Player()
+    global sword
+    player = initialize.initPlayer()
+    sword = initialize.initSword(player)
     
-    # Initialize platform
-    global platform
-    platform = classes.Platform()
-    platform2 = classes.Platform(dx=200,dy=-300,openBottom=True)
+    # Initialize mobs
+    global mobs
+    mobs = initialize.initMobs()
+    
+    # Initialize platforms
+    global platforms
+    platforms = initialize.initPlatforms()
+    
+    # Initialize Lava and Goal
+    global lava
+    lava = initialize.initLava()
+    global goal
+    goal = initialize.initGoal()
     
     # Initialize sprite groups
     playerSprite = pg.sprite.Group(player)
-    platformSprites = pg.sprite.Group((platform,platform2))
-    scrollingSprites = pg.sprite.RenderPlain((player,platform,platform2))
-    physicsSprites = pg.sprite.RenderPlain(player)
+    itemSprites = pg.sprite.Group(sword)
+    platformSprites = pg.sprite.Group(platforms)
+    scrollingSprites = pg.sprite.RenderUpdates([lava]+[player,sword]+mobs+platforms+[goal])
+    physicsSprites = pg.sprite.Group([player]+mobs)
+    mobSprites = pg.sprite.Group(mobs)
     
     # Blit everything to the screen
     screen.blit(background, (0,0))
@@ -70,26 +79,38 @@ def main():
                     player.jumpActive = True
 
         # Erase Player and platform location    
-        screen.blit(background, platform.rect, platform.rect)
-        screen.blit(background, player.rect, player.rect)
+        scrollingSprites.clear(screen,background)
         # Step physics
         engine.stepPhysics(physicsSprites)
+        engine.stepMobAI(playerSprite,mobSprites)
         engine.stepPlayer(playerSprite)
         for sprite in physicsSprites.sprites():
             sprite.moveFromV()
             engine.collisionPlatform(sprite,platformSprites)
+        # Check for collisions with mobs
+        dead = engine.collisionMob(player,mobSprites)
+        # Kill mobs in the lava
+        pg.sprite.spritecollide(lava, mobSprites,1)
         # Scroll Screen
         charx = player.rect.centerx
-        if charx < 0.2*varbs.screenW or charx > 0.8*varbs.screenW:
-            dx = screen.get_rect().centerx - charx
+        if charx < 0.2*varbs.screenW or charx > 0.7*varbs.screenW:
+            dx = 0.4*varbs.screenW - charx
             for sprite in scrollingSprites.sprites():
                 sprite.rect.move_ip(dx,0)
         # Update all sprites
         scrollingSprites.update()
         # Draw all sprites (via groups)
-        scrollingSprites.draw(screen)
+        dirty_rect = scrollingSprites.draw(screen)
         # Update display with new screen
-        pg.display.flip()
+        pg.display.update(dirty_rect)
+        # Check for victory
+        if pg.sprite.collide_rect(player,goal):
+            print("YOU WIN!")
+            return
+        # Check for death
+        if pg.sprite.collide_rect(player,lava) or dead:
+            print("YOU DIED!")
+            return
 
 
 if __name__ == "__main__":
