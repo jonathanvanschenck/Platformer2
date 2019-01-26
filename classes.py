@@ -225,7 +225,7 @@ class Mob(pg.sprite.Sprite):
     
     def __init__(self,x=100,y=100):
         pg.sprite.Sprite.__init__(self)
-        self.image, self.rect = load_png('walk02.png')
+        self.image, self.rect = load_png('ewalk02.png')
         self.loadGraphics()
         screen = pg.display.get_surface()
         self.rect = self.image.get_rect()
@@ -237,7 +237,7 @@ class Mob(pg.sprite.Sprite):
         self.contact = False
     
     def loadGraphics(self):
-        self.walkImages = [[load_png('walk0'+str(j+1)+'.png')[0] for j in range(4)]]
+        self.walkImages = [[load_png('ewalk0'+str(j+1)+'.png')[0] for j in range(4)]]
         self.walkImages += [[flipx(j) for j in self.walkImages[0]]]
         self.walkingI = 0
         self.facingI = 0#R=0,L=1

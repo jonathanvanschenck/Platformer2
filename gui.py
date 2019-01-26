@@ -54,6 +54,10 @@ def main():
     screen.blit(background, (0,0))
     pg.display.update()
     
+    # Initalize killcounter
+    global killcounter
+    killcounter = 0
+    
     # Initialize the clock
     clock = pg.time.Clock()
     
@@ -95,9 +99,10 @@ def main():
         pg.sprite.spritecollide(lava, mobSprites,1)
         # Kill mobs hit by sword
         if sword.visible:
-            pg.sprite.spritecollide(sword, mobSprites,1)
+            killcounter += len(pg.sprite.spritecollide(sword, mobSprites, 1))
         # Check for collisions with mobs
-        dead = engine.collisionMob(player,mobSprites)
+        dead, kc = engine.collisionMob(player,mobSprites)
+        killcounter += kc
         # Scroll Screen
         charx = player.rect.centerx
         if charx < 0.39*varbs.screenW or charx > 0.41*varbs.screenW:
@@ -123,6 +128,7 @@ def main():
         if pg.sprite.collide_rect(player,lava) or dead:
             print("YOU DIED!")
             return
+        print("Purifications: ",killcounter)
 
 
 if __name__ == "__main__":

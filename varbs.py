@@ -7,7 +7,7 @@ screenW = 1000
 margin = 10
 
 stageH = screenH - 2*margin
-stageW = 2*screenW - 2*margin
+stageW = 4*screenW - 2*margin
 
 framerate = 20
 

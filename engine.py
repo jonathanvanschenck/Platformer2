@@ -48,6 +48,7 @@ def collisionPlatform(sprite,platformSprites):
     sprite.doubleJumpReset(contact)
     
 def collisionMob(sprite,mobSprites):
+    kc = 0
     for mSprite in pg.sprite.spritecollide(sprite, mobSprites, 0):
         dx = collisionEdgeCorrection(sprite.rectO,sprite.rect,mSprite.rect)
         if dx[1] < 0.0:
@@ -55,10 +56,11 @@ def collisionMob(sprite,mobSprites):
             sprite.contact = True
             sprite.v[1] = -varbs.playerJumpOn
             mSprite.kill()
+            kc += 1
         else:
-            return True
+            return True,kc
         sprite.doubleJumpReset(sprite.contact)
-    return False
+    return False,kc
     
 def edgeReaction(p1,p2,corners):
     dc = [[c[0]-p2[0],c[1]-p2[1]] for c in corners]
